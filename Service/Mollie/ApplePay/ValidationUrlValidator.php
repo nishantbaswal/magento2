@@ -43,7 +43,7 @@ class ValidationUrlValidator
             return false;
         }
 
-        // Apple Pay gateway suffixes are short (e.g. "-nc-pod1"); cap to 32 characters to avoid abuse.
-        return empty($matches['suffix']) || strlen($matches['suffix']) <= 33;
+        // Apple Pay gateway suffixes are short (e.g. "-nc-pod1"); cap to 32 characters including the hyphen.
+        return empty($matches['suffix']) || strlen($matches['suffix']) <= 32;
     }
 }
