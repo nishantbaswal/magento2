@@ -25,6 +25,7 @@ use Magento\Quote\Api\GuestCartManagementInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
+use Mollie\Payment\Service\Mollie\ApplePay\ValidationErrorResponseFactory;
 use Mollie\Payment\Service\Mollie\MollieApiClient;
 use Mollie\Payment\Service\Mollie\ApplePay\ValidationUrlValidator;
 
@@ -82,6 +83,10 @@ class BuyNowValidation extends Action
      * @var ValidationUrlValidator
      */
     private $validationUrlValidator;
+    /**
+     * @var ValidationErrorResponseFactory
+     */
+    private $validationErrorResponseFactory;
 
     public function __construct(
         Context $context,
@@ -98,7 +103,8 @@ class BuyNowValidation extends Action
         ProductRepositoryInterface $productRepository,
         MollieApiClient $mollieApiClient,
         UrlInterface $url,
-        ValidationUrlValidator $validationUrlValidator
+        ValidationUrlValidator $validationUrlValidator,
+        ValidationErrorResponseFactory $validationErrorResponseFactory
     ) {
         parent::__construct($context, $customerSession, $customerRepository, $accountManagement);
 
@@ -113,6 +119,7 @@ class BuyNowValidation extends Action
         $this->url = $url;
         $this->mollieApiClient = $mollieApiClient;
         $this->validationUrlValidator = $validationUrlValidator;
+        $this->validationErrorResponseFactory = $validationErrorResponseFactory;
     }
 
     /**
@@ -196,13 +203,10 @@ class BuyNowValidation extends Action
 
             $this->validationUrlValidator->validate($validationUrl);
         } catch (LocalizedException $exception) {
-            $response->setHttpResponseCode(400);
-            $response->setData([
-                'error' => true,
-                'message' => $exception->getMessage(),
-            ]);
-
-            return $response;
+            return $this->validationErrorResponseFactory->create(
+                $this->resultFactory,
+                $exception->getMessage()
+            );
         }
 
         try {

@@ -12,6 +12,8 @@ use Magento\Framework\Exception\LocalizedException;
 
 class ValidationUrlValidator
 {
+    private const MAX_SUFFIX_LENGTH = 32;
+
     public function validate(string $validationUrl): void
     {
         if (!$this->isValid($validationUrl)) {
@@ -65,7 +67,7 @@ class ValidationUrlValidator
         }
 
         // Defensive cap: Apple Pay gateway suffixes are short (e.g. "-nc-pod1"); adjust if Apple extends naming.
-        if (strlen($suffix) > 32) {
+        if (strlen($suffix) > self::MAX_SUFFIX_LENGTH) {
             return false;
         }
 

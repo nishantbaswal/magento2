@@ -14,6 +14,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
 use Mollie\Payment\Model\Mollie;
+use Mollie\Payment\Service\Mollie\ApplePay\ValidationErrorResponseFactory;
 use Mollie\Payment\Service\Mollie\ApplePay\ValidationUrlValidator;
 
 class ApplePayValidation extends Action
@@ -40,6 +41,10 @@ class ApplePayValidation extends Action
      * @var ValidationUrlValidator
      */
     private $validationUrlValidator;
+    /**
+     * @var ValidationErrorResponseFactory
+     */
+    private $validationErrorResponseFactory;
 
     public function __construct(
         Context $context,
@@ -47,7 +52,8 @@ class ApplePayValidation extends Action
         StoreManagerInterface $storeManager,
         UrlInterface $url,
         Config $config,
-        ValidationUrlValidator $validationUrlValidator
+        ValidationUrlValidator $validationUrlValidator,
+        ValidationErrorResponseFactory $validationErrorResponseFactory
     ) {
         parent::__construct($context);
 
@@ -56,6 +62,7 @@ class ApplePayValidation extends Action
         $this->url = $url;
         $this->config = $config;
         $this->validationUrlValidator = $validationUrlValidator;
+        $this->validationErrorResponseFactory = $validationErrorResponseFactory;
     }
 
     public function execute()
@@ -65,14 +72,10 @@ class ApplePayValidation extends Action
         try {
             $this->validationUrlValidator->validate($validationUrl);
         } catch (LocalizedException $exception) {
-            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
-            $response->setHttpResponseCode(400);
-            $response->setData([
-                'error' => true,
-                'message' => $exception->getMessage(),
-            ]);
-
-            return $response;
+            return $this->validationErrorResponseFactory->create(
+                $this->resultFactory,
+                $exception->getMessage()
+            );
         }
 
         $store = $this->storeManager->getStore();
