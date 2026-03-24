@@ -73,6 +73,7 @@ class ValidationUrlValidator
 
         $segments = explode('-', substr($suffix, 1));
         foreach ($segments as $segment) {
+            // Empty segments indicate consecutive or trailing hyphens, which are not allowed.
             if ($segment === '' || !ctype_alnum($segment)) {
                 return false;
             }

@@ -203,10 +203,7 @@ class BuyNowValidation extends Action
 
             $this->validationUrlValidator->validate($validationUrl);
         } catch (LocalizedException $exception) {
-            return $this->validationErrorResponseFactory->create(
-                $this->resultFactory,
-                $exception->getMessage()
-            );
+            return $this->validationErrorResponseFactory->create($exception->getMessage());
         }
 
         try {

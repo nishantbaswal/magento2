@@ -13,9 +13,20 @@ use Magento\Framework\Controller\ResultFactory;
 
 class ValidationErrorResponseFactory
 {
-    public function create(ResultFactory $resultFactory, string $message, int $httpCode = 400): Json
+    /**
+     * @var ResultFactory
+     */
+    private $resultFactory;
+
+    public function __construct(
+        ResultFactory $resultFactory
+    ) {
+        $this->resultFactory = $resultFactory;
+    }
+
+    public function create(string $message, int $httpCode = 400): Json
     {
-        $response = $resultFactory->create(ResultFactory::TYPE_JSON);
+        $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $response->setHttpResponseCode($httpCode);
         $response->setData([
             'error' => true,

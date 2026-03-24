@@ -72,10 +72,7 @@ class ApplePayValidation extends Action
         try {
             $this->validationUrlValidator->validate($validationUrl);
         } catch (LocalizedException $exception) {
-            return $this->validationErrorResponseFactory->create(
-                $this->resultFactory,
-                $exception->getMessage()
-            );
+            return $this->validationErrorResponseFactory->create($exception->getMessage());
         }
 
         $store = $this->storeManager->getStore();
