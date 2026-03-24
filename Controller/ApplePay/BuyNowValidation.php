@@ -16,6 +16,7 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Data\Form\FormKey\Validator;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filter\LocalizedToNormalized;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\UrlInterface;
@@ -25,6 +26,7 @@ use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
 use Mollie\Payment\Service\Mollie\MollieApiClient;
+use Mollie\Payment\Service\Mollie\ApplePay\ValidationUrlValidator;
 
 class BuyNowValidation extends Action
 {
@@ -76,6 +78,10 @@ class BuyNowValidation extends Action
      * @var MollieApiClient
      */
     private $mollieApiClient;
+    /**
+     * @var ValidationUrlValidator
+     */
+    private $validationUrlValidator;
 
     public function __construct(
         Context $context,
@@ -91,7 +97,8 @@ class BuyNowValidation extends Action
         StoreManagerInterface $storeManager,
         ProductRepositoryInterface $productRepository,
         MollieApiClient $mollieApiClient,
-        UrlInterface $url
+        UrlInterface $url,
+        ValidationUrlValidator $validationUrlValidator
     ) {
         parent::__construct($context, $customerSession, $customerRepository, $accountManagement);
 
@@ -105,6 +112,7 @@ class BuyNowValidation extends Action
         $this->productRepository = $productRepository;
         $this->url = $url;
         $this->mollieApiClient = $mollieApiClient;
+        $this->validationUrlValidator = $validationUrlValidator;
     }
 
     /**
@@ -187,11 +195,22 @@ class BuyNowValidation extends Action
             $store = $this->storeManager->getStore();
             $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
             $url = $this->url->getBaseUrl();
+            $validationUrl = (string)$this->getRequest()->getParam('validationURL');
+
+            $this->validationUrlValidator->validate($validationUrl);
 
             $result = $api->wallets->requestApplePayPaymentSession(
                 parse_url($url, PHP_URL_HOST),
-                $this->getRequest()->getParam('validationURL')
+                $validationUrl
             );
+        } catch (LocalizedException $exception) {
+            $response->setHttpResponseCode(400);
+            $response->setData([
+                'error' => true,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $response;
         } catch (\Exception $exception) {
             $response->setHttpResponseCode(500);
             $response->setData([

@@ -9,10 +9,12 @@ namespace Mollie\Payment\Controller\Checkout;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
 use Mollie\Payment\Model\Mollie;
+use Mollie\Payment\Service\Mollie\ApplePay\ValidationUrlValidator;
 
 class ApplePayValidation extends Action
 {
@@ -34,13 +36,18 @@ class ApplePayValidation extends Action
      * @var Config
      */
     private $config;
+    /**
+     * @var ValidationUrlValidator
+     */
+    private $validationUrlValidator;
 
     public function __construct(
         Context $context,
         Mollie $mollie,
         StoreManagerInterface $storeManager,
         UrlInterface $url,
-        Config $config
+        Config $config,
+        ValidationUrlValidator $validationUrlValidator
     ) {
         parent::__construct($context);
 
@@ -48,17 +55,33 @@ class ApplePayValidation extends Action
         $this->storeManager = $storeManager;
         $this->url = $url;
         $this->config = $config;
+        $this->validationUrlValidator = $validationUrlValidator;
     }
 
     public function execute()
     {
+        $validationUrl = (string)$this->getRequest()->getParam('validationURL');
+
+        try {
+            $this->validationUrlValidator->validate($validationUrl);
+        } catch (LocalizedException $exception) {
+            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+            $response->setHttpResponseCode(400);
+            $response->setData([
+                'error' => true,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $response;
+        }
+
         $store = $this->storeManager->getStore();
         $api = $this->mollie->loadMollieApi($this->getLiveApiKey((int)$store->getId()));
         $url = $this->url->getBaseUrl();
 
         $result = $api->wallets->requestApplePayPaymentSession(
             parse_url($url, PHP_URL_HOST),
-            $this->getRequest()->getParam('validationURL')
+            $validationUrl
         );
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
