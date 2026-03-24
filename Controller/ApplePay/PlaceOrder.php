@@ -142,7 +142,7 @@ class PlaceOrder extends Action
             ]);
 
             $response->setHttpResponseCode(400);
-            return $response->setData(['error' => true, 'message' => $exception->getMessage()]);
+            return $response->setData(['error' => true, 'message' => __('An error occurred while placing the order. Please try again.')]);
         }
 
         $order->getPayment()->setAdditionalInformation(

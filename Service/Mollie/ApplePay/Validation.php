@@ -46,6 +46,8 @@ class Validation
 
     public function execute(string $validationUrl, ?string $domain = null): string
     {
+        $this->validateApplePayUrl($validationUrl);
+
         $store = $this->storeManager->getStore();
         $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
 
@@ -57,6 +59,39 @@ class Validation
             $domain,
             $validationUrl
         );
+    }
+
+    /**
+     * Validates that the Apple Pay validation URL is from an Apple domain (SSRF prevention).
+     *
+     * @param string $url
+     * @throws \InvalidArgumentException
+     */
+    public function validateApplePayUrl(string $url): void
+    {
+        $parsed = parse_url($url);
+
+        if (!$parsed || empty($parsed['scheme']) || empty($parsed['host'])) {
+            throw new \InvalidArgumentException((string)__('Invalid Apple Pay validation URL'));
+        }
+
+        if ($parsed['scheme'] !== 'https') {
+            throw new \InvalidArgumentException((string)__('Apple Pay validation URL must use HTTPS'));
+        }
+
+        // Normalize the host to ASCII (punycode) to prevent IDN homograph attacks,
+        // e.g. a Cyrillic 'а' that visually looks like a Latin 'a'.
+        $host = $parsed['host'];
+        if (function_exists('idn_to_ascii')) {
+            $normalized = idn_to_ascii($host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+            if ($normalized !== false) {
+                $host = $normalized;
+            }
+        }
+
+        if (!preg_match('/(?:^|\.)apple\.com$/', $host)) {
+            throw new \InvalidArgumentException((string)__('Apple Pay validation URL must be from apple.com'));
+        }
     }
 
     private function getLiveApiKey(int $storeId): string

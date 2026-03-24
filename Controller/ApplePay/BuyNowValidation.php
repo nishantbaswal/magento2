@@ -24,6 +24,7 @@ use Magento\Quote\Api\GuestCartManagementInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
+use Mollie\Payment\Service\Mollie\ApplePay\Validation;
 use Mollie\Payment\Service\Mollie\MollieApiClient;
 
 class BuyNowValidation extends Action
@@ -76,6 +77,10 @@ class BuyNowValidation extends Action
      * @var MollieApiClient
      */
     private $mollieApiClient;
+    /**
+     * @var Validation
+     */
+    private $validation;
 
     public function __construct(
         Context $context,
@@ -91,7 +96,8 @@ class BuyNowValidation extends Action
         StoreManagerInterface $storeManager,
         ProductRepositoryInterface $productRepository,
         MollieApiClient $mollieApiClient,
-        UrlInterface $url
+        UrlInterface $url,
+        Validation $validation
     ) {
         parent::__construct($context, $customerSession, $customerRepository, $accountManagement);
 
@@ -105,6 +111,7 @@ class BuyNowValidation extends Action
         $this->productRepository = $productRepository;
         $this->url = $url;
         $this->mollieApiClient = $mollieApiClient;
+        $this->validation = $validation;
     }
 
     /**
@@ -184,19 +191,30 @@ class BuyNowValidation extends Action
         }
 
         try {
+            $validationURL = $this->getRequest()->getParam('validationURL');
+            $this->validation->validateApplePayUrl($validationURL);
+
             $store = $this->storeManager->getStore();
             $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
             $url = $this->url->getBaseUrl();
 
             $result = $api->wallets->requestApplePayPaymentSession(
                 parse_url($url, PHP_URL_HOST),
-                $this->getRequest()->getParam('validationURL')
+                $validationURL
             );
+        } catch (\InvalidArgumentException $exception) {
+            $response->setHttpResponseCode(400);
+            $response->setData([
+                'error' => true,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $response;
         } catch (\Exception $exception) {
             $response->setHttpResponseCode(500);
             $response->setData([
                 'error' => true,
-                'message' => $exception->getMessage(),
+                'message' => __('An error occurred while processing the Apple Pay validation.'),
             ]);
 
             return $response;

@@ -88,6 +88,31 @@ class CsrfValidatorSkipTest extends UnitTestCase
         $this->assertEquals($uniqid, $result);
     }
 
+    public function testDoesNotSkipCsrfWhenWebhookIsInQueryString()
+    {
+        $urlMock = $this->createMock(UrlInterface::class);
+        $urlMock->method('getCurrentUrl')->willReturn(
+            'http://www.example.com/checkout/onepage/savePaymentMethod?foo=mollie/checkout/webhook'
+        );
+
+        /** @var CsrfValidatorSkip $instance */
+        $instance = $this->objectManager->getObject(CsrfValidatorSkip::class, [
+            'url' => $urlMock,
+        ]);
+
+        $called = false;
+        $instance->aroundValidate(
+            $this->objectManager->getObject(CsrfValidator::class),
+            function () use (&$called) {
+                $called = true;
+            },
+            $this->getRequestInterface(),
+            $this->getActionInterface()
+        );
+
+        $this->assertTrue($called, 'CSRF should NOT be bypassed when webhook path is only in the query string');
+    }
+
     private function getRequestInterface()
     {
         return new class implements \Magento\Framework\App\RequestInterface {
