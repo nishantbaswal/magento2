@@ -39,11 +39,43 @@ class ValidationUrlValidator
         }
 
         $host = strtolower($parts['host']);
-        if (!preg_match('/^apple-pay-gateway(?P<suffix>-(?:[a-z0-9]+-)*[a-z0-9]+)?\\.apple\\.com(?:\\.cn)?$/', $host, $matches)) {
+        $prefix = 'apple-pay-gateway';
+        $appleComCn = '.apple.com.cn';
+        $appleCom = '.apple.com';
+
+        if (substr($host, -strlen($appleComCn)) === $appleComCn) {
+            $baseHost = substr($host, 0, -strlen($appleComCn));
+        } elseif (substr($host, -strlen($appleCom)) === $appleCom) {
+            $baseHost = substr($host, 0, -strlen($appleCom));
+        } else {
             return false;
         }
 
-        // Apple Pay gateway suffixes are short (e.g. "-nc-pod1"); cap to 32 characters including the hyphen.
-        return empty($matches['suffix']) || strlen($matches['suffix']) <= 32;
+        if (strpos($baseHost, $prefix) !== 0) {
+            return false;
+        }
+
+        $suffix = substr($baseHost, strlen($prefix));
+        if ($suffix === '') {
+            return true;
+        }
+
+        if ($suffix[0] !== '-') {
+            return false;
+        }
+
+        // Defensive cap: Apple Pay gateway suffixes are short (e.g. "-nc-pod1"); adjust if Apple extends naming.
+        if (strlen($suffix) > 32) {
+            return false;
+        }
+
+        $segments = explode('-', substr($suffix, 1));
+        foreach ($segments as $segment) {
+            if ($segment === '' || !ctype_alnum($segment)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
