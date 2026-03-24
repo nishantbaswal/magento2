@@ -31,21 +31,29 @@ class Validation
      * @var Config
      */
     private $config;
+    /**
+     * @var ValidationUrlValidator
+     */
+    private $validationUrlValidator;
 
     public function __construct(
         StoreManagerInterface $storeManager,
         UrlInterface $url,
         MollieApiClient $mollieApiClient,
-        Config $config
+        Config $config,
+        ValidationUrlValidator $validationUrlValidator
     ) {
         $this->storeManager = $storeManager;
         $this->url = $url;
         $this->mollieApiClient = $mollieApiClient;
         $this->config = $config;
+        $this->validationUrlValidator = $validationUrlValidator;
     }
 
     public function execute(string $validationUrl, ?string $domain = null): string
     {
+        $this->validationUrlValidator->validate($validationUrl);
+
         $store = $this->storeManager->getStore();
         $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
 

@@ -16,6 +16,7 @@ use Magento\Framework\App\Action\Context;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Data\Form\FormKey\Validator;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filter\LocalizedToNormalized;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\UrlInterface;
@@ -24,7 +25,9 @@ use Magento\Quote\Api\GuestCartManagementInterface;
 use Magento\Quote\Api\GuestCartRepositoryInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
+use Mollie\Payment\Service\Mollie\ApplePay\ValidationErrorResponseFactory;
 use Mollie\Payment\Service\Mollie\MollieApiClient;
+use Mollie\Payment\Service\Mollie\ApplePay\ValidationUrlValidator;
 
 class BuyNowValidation extends Action
 {
@@ -76,6 +79,14 @@ class BuyNowValidation extends Action
      * @var MollieApiClient
      */
     private $mollieApiClient;
+    /**
+     * @var ValidationUrlValidator
+     */
+    private $validationUrlValidator;
+    /**
+     * @var ValidationErrorResponseFactory
+     */
+    private $validationErrorResponseFactory;
 
     public function __construct(
         Context $context,
@@ -91,7 +102,9 @@ class BuyNowValidation extends Action
         StoreManagerInterface $storeManager,
         ProductRepositoryInterface $productRepository,
         MollieApiClient $mollieApiClient,
-        UrlInterface $url
+        UrlInterface $url,
+        ValidationUrlValidator $validationUrlValidator,
+        ValidationErrorResponseFactory $validationErrorResponseFactory
     ) {
         parent::__construct($context, $customerSession, $customerRepository, $accountManagement);
 
@@ -105,6 +118,8 @@ class BuyNowValidation extends Action
         $this->productRepository = $productRepository;
         $this->url = $url;
         $this->mollieApiClient = $mollieApiClient;
+        $this->validationUrlValidator = $validationUrlValidator;
+        $this->validationErrorResponseFactory = $validationErrorResponseFactory;
     }
 
     /**
@@ -183,6 +198,13 @@ class BuyNowValidation extends Action
             ]);
         }
 
+        $validationUrl = (string)$this->getRequest()->getParam('validationURL');
+        try {
+            $this->validationUrlValidator->validate($validationUrl);
+        } catch (LocalizedException $exception) {
+            return $this->validationErrorResponseFactory->create($exception->getMessage());
+        }
+
         try {
             $store = $this->storeManager->getStore();
             $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
@@ -190,7 +212,7 @@ class BuyNowValidation extends Action
 
             $result = $api->wallets->requestApplePayPaymentSession(
                 parse_url($url, PHP_URL_HOST),
-                $this->getRequest()->getParam('validationURL')
+                $validationUrl
             );
         } catch (\Exception $exception) {
             $response->setHttpResponseCode(500);
