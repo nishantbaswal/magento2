@@ -192,17 +192,9 @@ class BuyNowValidation extends Action
         }
 
         try {
-            $store = $this->storeManager->getStore();
-            $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
-            $url = $this->url->getBaseUrl();
             $validationUrl = (string)$this->getRequest()->getParam('validationURL');
 
             $this->validationUrlValidator->validate($validationUrl);
-
-            $result = $api->wallets->requestApplePayPaymentSession(
-                parse_url($url, PHP_URL_HOST),
-                $validationUrl
-            );
         } catch (LocalizedException $exception) {
             $response->setHttpResponseCode(400);
             $response->setData([
@@ -211,6 +203,17 @@ class BuyNowValidation extends Action
             ]);
 
             return $response;
+        }
+
+        try {
+            $store = $this->storeManager->getStore();
+            $api = $this->mollieApiClient->loadByApiKey($this->getLiveApiKey((int)$store->getId()));
+            $url = $this->url->getBaseUrl();
+
+            $result = $api->wallets->requestApplePayPaymentSession(
+                parse_url($url, PHP_URL_HOST),
+                $validationUrl
+            );
         } catch (\Exception $exception) {
             $response->setHttpResponseCode(500);
             $response->setData([

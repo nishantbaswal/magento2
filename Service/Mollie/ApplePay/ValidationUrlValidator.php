@@ -34,6 +34,6 @@ class ValidationUrlValidator
             return false;
         }
 
-        return (bool)preg_match('/(^|\\.)apple-pay-gateway(-[a-z0-9-]+)?\\.apple\\.com(\\.cn)?$/i', strtolower($parts['host']));
+        return (bool)preg_match('/^apple-pay-gateway(?:-[a-z0-9-]{1,32})?\\.apple\\.com(?:\\.cn)?$/i', strtolower($parts['host']));
     }
 }
