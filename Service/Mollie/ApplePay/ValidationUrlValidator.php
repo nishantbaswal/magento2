@@ -39,7 +39,7 @@ class ValidationUrlValidator
         }
 
         $host = strtolower($parts['host']);
-        if (!preg_match('/^apple-pay-gateway(?P<suffix>-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.apple\\.com(?:\\.cn)?$/', $host, $matches)) {
+        if (!preg_match('/^apple-pay-gateway(?P<suffix>-(?:[a-z0-9]+-)*[a-z0-9]+)?\\.apple\\.com(?:\\.cn)?$/', $host, $matches)) {
             return false;
         }
 
