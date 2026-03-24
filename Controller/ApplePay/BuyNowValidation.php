@@ -198,9 +198,8 @@ class BuyNowValidation extends Action
             ]);
         }
 
+        $validationUrl = (string)$this->getRequest()->getParam('validationURL');
         try {
-            $validationUrl = (string)$this->getRequest()->getParam('validationURL');
-
             $this->validationUrlValidator->validate($validationUrl);
         } catch (LocalizedException $exception) {
             return $this->validationErrorResponseFactory->create($exception->getMessage());

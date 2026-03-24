@@ -62,7 +62,7 @@ class ValidationUrlValidator
             return true;
         }
 
-        if ($suffix[0] !== '-') {
+        if (substr($suffix, 0, 1) !== '-') {
             return false;
         }
 
