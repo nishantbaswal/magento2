@@ -26,7 +26,8 @@ class CsrfValidatorSkip
         RequestInterface $request,
         ActionInterface $action
     ) {
-        if (strpos($this->url->getCurrentUrl(), 'mollie/checkout/webhook') !== false) {
+        $urlPath = parse_url($this->url->getCurrentUrl(), PHP_URL_PATH) ?: '';
+        if (strpos($urlPath, 'mollie/checkout/webhook') !== false) {
             return null;
         }
 

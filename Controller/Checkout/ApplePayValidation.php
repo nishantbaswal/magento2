@@ -13,6 +13,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Mollie\Payment\Config;
 use Mollie\Payment\Model\Mollie;
+use Mollie\Payment\Service\Mollie\ApplePay\Validation;
 
 class ApplePayValidation extends Action
 {
@@ -34,13 +35,18 @@ class ApplePayValidation extends Action
      * @var Config
      */
     private $config;
+    /**
+     * @var Validation
+     */
+    private $validation;
 
     public function __construct(
         Context $context,
         Mollie $mollie,
         StoreManagerInterface $storeManager,
         UrlInterface $url,
-        Config $config
+        Config $config,
+        Validation $validation
     ) {
         parent::__construct($context);
 
@@ -48,17 +54,29 @@ class ApplePayValidation extends Action
         $this->storeManager = $storeManager;
         $this->url = $url;
         $this->config = $config;
+        $this->validation = $validation;
     }
 
     public function execute()
     {
+        $validationURL = $this->getRequest()->getParam('validationURL');
+
+        try {
+            $this->validation->validateApplePayUrl($validationURL);
+        } catch (\InvalidArgumentException $e) {
+            $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+            $response->setHttpResponseCode(400);
+            $response->setData(['error' => true, 'message' => $e->getMessage()]);
+            return $response;
+        }
+
         $store = $this->storeManager->getStore();
         $api = $this->mollie->loadMollieApi($this->getLiveApiKey((int)$store->getId()));
         $url = $this->url->getBaseUrl();
 
         $result = $api->wallets->requestApplePayPaymentSession(
             parse_url($url, PHP_URL_HOST),
-            $this->getRequest()->getParam('validationURL')
+            $validationURL
         );
 
         $response = $this->resultFactory->create(ResultFactory::TYPE_JSON);
