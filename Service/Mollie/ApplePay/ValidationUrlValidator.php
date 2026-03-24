@@ -39,10 +39,11 @@ class ValidationUrlValidator
         }
 
         $host = strtolower($parts['host']);
-        if (!preg_match('/^apple-pay-gateway(?P<suffix>-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.apple\\.com(?:\\.cn)?$/i', $host, $matches)) {
+        if (!preg_match('/^apple-pay-gateway(?P<suffix>-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.apple\\.com(?:\\.cn)?$/', $host, $matches)) {
             return false;
         }
 
+        // Apple Pay gateway suffixes are short (e.g. "-nc-pod1"); cap to 32 characters to avoid abuse.
         return empty($matches['suffix']) || strlen($matches['suffix']) <= 33;
     }
 }
