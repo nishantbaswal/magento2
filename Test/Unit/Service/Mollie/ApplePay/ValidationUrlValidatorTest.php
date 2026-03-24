@@ -49,6 +49,8 @@ class ValidationUrlValidatorTest extends UnitTestCase
         return [
             ['http://apple-pay-gateway.apple.com/paymentservices/startSession'],
             ['https://apple-pay-gateway.apple.com.evil.com/paymentservices/startSession'],
+            ['https://apple-pay-gateway--pod1.apple.com/paymentservices/startSession'],
+            ['https://apple-pay-gateway.apple.com/paymentservices/startSession/extra'],
             ['https://example.com/paymentservices/startSession'],
             ['https://apple.com/paymentservices/startSession'],
             ['https://foo.apple.com.cn/paymentservices/startSession'],

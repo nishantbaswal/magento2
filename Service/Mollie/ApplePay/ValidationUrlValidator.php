@@ -34,6 +34,15 @@ class ValidationUrlValidator
             return false;
         }
 
-        return (bool)preg_match('/^apple-pay-gateway(?:-[a-z0-9-]{1,32})?\\.apple\\.com(?:\\.cn)?$/i', strtolower($parts['host']));
+        if (($parts['path'] ?? '') !== '/paymentservices/startSession') {
+            return false;
+        }
+
+        $host = strtolower($parts['host']);
+        if (!preg_match('/^apple-pay-gateway(?P<suffix>-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.apple\\.com(?:\\.cn)?$/i', $host, $matches)) {
+            return false;
+        }
+
+        return empty($matches['suffix']) || strlen($matches['suffix']) <= 33;
     }
 }
