@@ -17,11 +17,11 @@ class ValidationUrlValidatorTest extends UnitTestCase
      */
     public function testAllowsValidUrls(string $url)
     {
+        $this->expectNotToPerformAssertions();
+
         $validator = new ValidationUrlValidator();
 
         $validator->validate($url);
-
-        $this->assertTrue(true);
     }
 
     public function validUrlProvider(): array
@@ -29,9 +29,7 @@ class ValidationUrlValidatorTest extends UnitTestCase
         return [
             ['https://apple-pay-gateway.apple.com/paymentservices/startSession'],
             ['https://apple-pay-gateway-nc-pod1.apple.com/paymentservices/startSession'],
-            ['https://apple.com/paymentservices/startSession'],
-            ['https://apple.com.cn/paymentservices/startSession'],
-            ['https://foo.apple.com.cn/paymentservices/startSession'],
+            ['https://apple-pay-gateway-cn.apple.com.cn/paymentservices/startSession'],
         ];
     }
 
@@ -52,6 +50,8 @@ class ValidationUrlValidatorTest extends UnitTestCase
             ['http://apple-pay-gateway.apple.com/paymentservices/startSession'],
             ['https://apple-pay-gateway.apple.com.evil.com/paymentservices/startSession'],
             ['https://example.com/paymentservices/startSession'],
+            ['https://apple.com/paymentservices/startSession'],
+            ['https://foo.apple.com.cn/paymentservices/startSession'],
             ['not-a-url'],
             [''],
         ];
